@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "dependencies": {
+    "express": "*",
+    "morgan": "*",
+    "pdfkit": "*",
+    "playwright": "*",
+    "serve-favicon": "*",
+    "sharp": "*",
+    "yt-search": "*"
+  }
+}
