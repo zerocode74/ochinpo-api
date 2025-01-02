@@ -49,10 +49,11 @@ const utils = {
 		await fs.promises.writeFile(output, Buffer.from(img))
 		return output
 	},
+	/*
 	fetchCobaltAPI: async (url, opts = {}) =>
 		(
 			await utils.fetchPOST(
-				'https://c.blahaj.ca/',
+				'https://capi.3kh0.net',
 				JSON.stringify({ url, ...opts }),
 				{
 					headers: {
@@ -62,8 +63,7 @@ const utils = {
 				}
 			)
 		).json(),
-	fetchPOST: (url, body, opts = {}) =>
-		fetch(url, { method: 'POST', body, ...opts }),
+	*/
 	fetchMediafireAPI: async (id) => {
 		// TODO: folder download
 		let resp = await fetch(
@@ -71,6 +71,27 @@ const utils = {
 		)
 		let json = await resp.json()
 		return json.response
+	},
+	fetchPOST: (url, body, opts = {}) =>
+		fetch(url, { method: 'POST', body, ...opts }),
+	fetchSaveTubeAPI: async (opts = {}) => {
+		const headers = {
+			Authority: `cdn${~~(Math.random() * 11) + 51}.savetube.su`,
+			'Content-Type': 'application/json'
+		}
+		
+		const makeRequest = async (endpoint) =>
+			(
+				await utils.fetchPOST(
+					`https://${headers.Authority}${endpoint}`,
+					JSON.stringify(opts),
+					{ headers }
+				)
+			).json()
+		
+		let info = await makeRequest('/info')
+		opts.key = info.data.key
+		return makeRequest('/download')
 	},
 	formatSize: (n) => bytes(+n, { unitSeparator: ' ' }),
 	generateBrat: async (text) => {
@@ -168,6 +189,7 @@ app.use(morgan('combined'))
 
 app.use((req, __, next) => {
 	// clear tmp
+	/*
 	for (let file of fs.readdirSync(tmpDir)) {
 		file = `${tmpDir}/${file}`
 		const stat = fs.statSync(file)
@@ -177,6 +199,7 @@ app.use((req, __, next) => {
 			fs.unlinkSync(file)
 		}
 	}
+	*/
 	req.allParams = Object.assign(req.query, req.body)
 	next()
 })
@@ -408,23 +431,22 @@ app.all(/^\/y(outube|t)(\/(d(ownload|l)|search)?)?/, async (req, res) => {
 			if (!utils.ytIdRegex.test(obj.url))
 				return res.status(400).json({ success: false, message: 'Invalid url' })
 
-			const payload = { filenameStyle: 'pretty', youtubeHLS: utils.isTrue(obj.hls) }
-			if (obj.type === 'audio') {
-				payload.audioBitrate = obj.quality || '128'
-				payload.downloadMode = 'audio'
-			} else {
-				payload.videoQuality = obj.quality || '720'
+			const isAudio = obj.type !== 'video'
+			const payload = {
+				downloadType: isAudio ? 'audio' : 'video',
+				quality: String(obj.quality) || isAudio ? '128' : '720',
+				url: obj.url
 			}
 
-			const result = await utils.fetchCobaltAPI(obj.url, payload)
-			if (!result.url) {
+			const result = await utils.fetchSaveTubeAPI(payload)
+			if (!result.data?.downloadUrl) {
 				console.log(result)
 				return res
 					.status(400)
 					.json({ success: false, message: 'An error occurred' })
             }
 
-			res.redirect(result.url)
+			res.redirect(result.data.downloadUrl)
 			return
 		}
 
