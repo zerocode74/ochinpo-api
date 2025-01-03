@@ -76,10 +76,10 @@ const utils = {
 		fetch(url, { method: 'POST', body, ...opts }),
 	fetchSaveTubeAPI: async (opts = {}) => {
 		const headers = {
-			Authority: `cdn${~~(Math.random() * 11) + 51}.savetube.su`,
+			Authority: 'cdn59.savetube.su',
 			'Content-Type': 'application/json'
 		}
-		
+
 		const makeRequest = async (endpoint) =>
 			(
 				await utils.fetchPOST(
@@ -88,7 +88,7 @@ const utils = {
 					{ headers }
 				)
 			).json()
-		
+
 		let info = await makeRequest('/info')
 		opts.key = info.data.key
 		return makeRequest('/download')
@@ -434,9 +434,10 @@ app.all(/^\/y(outube|t)(\/(d(ownload|l)|search)?)?/, async (req, res) => {
 			const isAudio = obj.type !== 'video'
 			const payload = {
 				downloadType: isAudio ? 'audio' : 'video',
-				quality: String(obj.quality) || isAudio ? '128' : '720',
+				quality: obj.quality || isAudio ? '128' : '720',
 				url: obj.url
 			}
+			console.log(payload)
 
 			const result = await utils.fetchSaveTubeAPI(payload)
 			if (!result.data?.downloadUrl) {
