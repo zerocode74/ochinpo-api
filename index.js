@@ -434,7 +434,7 @@ app.all(/^\/y(outube|t)(\/(d(ownload|l)|search)?)?/, async (req, res) => {
 			const isAudio = obj.type !== 'video'
 			const payload = {
 				downloadType: isAudio ? 'audio' : 'video',
-				quality: obj.quality || isAudio ? '128' : '720',
+				quality: obj.quality ? String(obj.quality) : isAudio ? '128' : '720',
 				url: obj.url
 			}
 			console.log(payload)
