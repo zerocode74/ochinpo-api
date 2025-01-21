@@ -512,4 +512,4 @@ app.all(/^\/y(outube|t)(\/(d(ownload|l)|search)?)?/, async (req, res) => {
 // app.use((req, res, next) => {})
 
 const PORT = process.env.PORT || 7860
-app.listen(PORT, () => console.log(`App running on port ${PORT}`)
+app.listen(PORT, () => console.log(`App running on port ${PORT}`))
