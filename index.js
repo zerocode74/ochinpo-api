@@ -72,6 +72,30 @@ const utils = {
 		let json = await resp.json()
 		return json.response
 	},
+	fetchMp3Youtube: async (opts) => {
+		const headers = {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			Origin: 'https://conv.mp3youtube.cc'
+		}
+		
+		const makeRequest = async (endpoint) =>
+			(
+				await fetch(
+					`https://api.mp3youtube.cc/v2/${endpoint}`,
+					Object.assign(
+						{ headers },
+						(endpoint !== 'converter' ? {} : {
+							method: 'POST',
+							body: new URLSearchParams(opts).toString()
+						})
+					)
+				)
+			).json()
+		
+		const data = await makeRequest('sanity/key')
+		headers.key = data.key
+		return makeRequest('converter')
+	},
 	fetchPOST: (url, body, opts = {}) =>
 		fetch(url, { method: 'POST', body, ...opts }),
 	fetchSaveTubeAPI: async (opts = {}) => {
@@ -433,21 +457,24 @@ app.all(/^\/y(outube|t)(\/(d(ownload|l)|search)?)?/, async (req, res) => {
 
 			const isAudio = obj.type !== 'video'
 			const payload = {
-				downloadType: isAudio ? 'audio' : 'video',
-				quality: obj.quality ? String(obj.quality) : isAudio ? '128' : '720',
-				url: obj.url
+				link: obj.url,
+				format: isAudio ? 'mp3' : 'mp4',
+				audioBitrate: isAudio ? obj.quality || 256 : 256,
+				videoQuality: isAudio ? 360 : obj.quality || 360,
+				vCodec: 'h264'
 			}
-			console.log(payload)
 
-			const result = await utils.fetchSaveTubeAPI(payload)
-			if (!result.data?.downloadUrl) {
+			const result = await utils.fetchMp3Youtube(payload)
+			if (!result.url) {
 				console.log(result)
-				return res
+				const msg = result.errorMsg || 'An error occured'
+				res
 					.status(400)
-					.json({ success: false, message: 'An error occurred' })
+					.json({ success: false, message: msg })
+				return
             }
 
-			res.redirect(result.data.downloadUrl)
+			res.redirect(result.url)
 			return
 		}
 
@@ -485,4 +512,4 @@ app.all(/^\/y(outube|t)(\/(d(ownload|l)|search)?)?/, async (req, res) => {
 // app.use((req, res, next) => {})
 
 const PORT = process.env.PORT || 7860
-app.listen(PORT, () => console.log(`App running on port ${PORT}`))
+app.listen(PORT, () => console.log(`App running on port ${PORT}`)
