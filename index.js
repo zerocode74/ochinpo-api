@@ -13,6 +13,39 @@ import util from 'util'
 import yts from 'yt-search'
 
 const utils = {
+	decryptSaveTube: async (data) => {
+		const key = 'C5D58EF67A7584E4A29F6C35BBC4EB12'
+		
+		const toByteArray = (str) => {
+			if (str === key) return new Uint8Array(
+				str
+					.match(/[\dA-F]{2}/gi)
+					.map(v => parseInt(v, 16))
+			)
+			let n = atob(str.replace(/\s/g, ''))
+			let a = new Uint8Array(n.length)
+			for (let e = 0; e < n.length; e++) a[e] = n.charCodeAt(e)
+			return a.buffer
+		}
+		
+		const importKey = () => crypto.subtle.importKey(
+			'raw',
+			toByteArray(key),
+			{ name: 'AES-CBC' },
+			false,
+			['decrypt']
+		)
+		
+		const t = toByteArray(data),
+			iv = t.slice(0, 16),
+			s = await crypto.subtle.decrypt(
+				{ name: 'AES-CBC', iv },
+				await importKey(),
+				t.slice(16)
+			),
+			l = new TextDecoder().decode(new Uint8Array(s))
+		return JSON.parse(l)
+	},
 	getBrowser: (...opts) =>
 		playwright.chromium.launch({
 			args: [
@@ -74,10 +107,10 @@ const utils = {
 	},
 	fetchPOST: (url, body, opts = {}) =>
 		fetch(url, { method: 'POST', body, ...opts }),
-	fetchSaveTubeAPI: async (opts = {}) => {
+	fetchSaveTubeAPI: async (opts) => {
 		const headers = {
 			Authority: 'cdn59.savetube.su',
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
 		}
 
 		const makeRequest = async (endpoint) =>
@@ -89,8 +122,9 @@ const utils = {
 				)
 			).json()
 
-		let info = await makeRequest('/info')
-		opts.key = info.data.key
+		let info = await makeRequest('/v2/info')
+		info = await utils.decryptSaveTube(info.data)
+		opts.key = info.key
 		return makeRequest('/download')
 	},
 	formatSize: (n) => bytes(+n, { unitSeparator: ' ' }),
@@ -438,17 +472,18 @@ app.all(/^\/y(outube|t)(\/(d(ownload|l)|search)?)?/, async (req, res) => {
 				quality: obj.quality ? String(obj.quality) : isAudio ? '128' : '720',
 				url: obj.url
 			}
-			console.log(payload)
 
 			const result = await utils.fetchSaveTubeAPI(payload)
 			if (!result.data?.downloadUrl) {
 				console.log(result)
-				return res
+				const msg = result?.message || 'An error occured'
+				res
 					.status(400)
-					.json({ success: false, message: 'An error occurred' })
-            }
+					.json({ success: false, message: msg })
+				return
+			}
 
-			res.redirect(result.data.downloadUrl)
+			res.redirect(result.data?.downloadUrl)
 			return
 		}
 
