@@ -133,13 +133,13 @@ generateBrat: async (text) => {
     try {
         const page = await browser.newPage()
         
-        // Set User-Agent untuk Safari di iPhone 15 dengan iOS 17
-        await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/537.36')
+        // Set User-Agent untuk Safari di MacOS
+        await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Version/15.0 Safari/537.36')
         
-        // Emulator perangkat iPhone 15 dengan iOS 17
+        // Emulator perangkat MacBook Pro (macOS)
         await page.emulate({
-            name: 'iPhone 15', // Menggunakan preset perangkat iPhone 15
-            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/537.36'
+            name: 'MacBook Pro', // Menggunakan preset perangkat MacBook Pro
+            userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Version/15.0 Safari/537.36'
         })
         
         // Akses halaman
@@ -156,7 +156,9 @@ generateBrat: async (text) => {
     } finally {
         if (browser) await browser.close()
     }
-},	getMediafireDownloadLink: async (url) => {
+},
+		
+	getMediafireDownloadLink: async (url) => {
 		let resp = await fetch(url)
 		let html = await resp.text()
 		let dl = html.match(/href="(.*?)".*id="downloadButton"/)?.[1]
