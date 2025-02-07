@@ -128,14 +128,26 @@ const utils = {
 		return makeRequest('/download')
 	},
 	formatSize: (n) => bytes(+n, { unitSeparator: ' ' }),
-	generateBrat: async (text) => {
+generateBrat: async (text) => {
     const browser = await utils.getBrowser()
     try {
         const page = await browser.newPage()
-        await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/537.36')
+        
+        // Set User-Agent untuk Safari di iPhone 15 dengan iOS 17
+        await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/537.36')
+        
+        // Emulator perangkat iPhone 15 dengan iOS 17
+        await page.emulate({
+            name: 'iPhone 15', // Menggunakan preset perangkat iPhone 15
+            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/537.36'
+        })
+        
+        // Akses halaman
         await page.goto('https://www.bratgenerator.com/')
         await page.click('#toggleButtonWhite')
         await page.locator('#textInput').fill(text)
+        
+        // Ambil screenshot
         const output = `${tmpDir}/${utils.randomName('.jpg')}`
         const ss = await page.locator('#textOverlay').screenshot({ path: output })
         return output
@@ -144,8 +156,7 @@ const utils = {
     } finally {
         if (browser) await browser.close()
     }
-},
-	getMediafireDownloadLink: async (url) => {
+},	getMediafireDownloadLink: async (url) => {
 		let resp = await fetch(url)
 		let html = await resp.text()
 		let dl = html.match(/href="(.*?)".*id="downloadButton"/)?.[1]
